@@ -9,7 +9,8 @@
     "lint": "eslint",
     "seed:gen": "node scripts/gen-seed.mjs",
     "typecheck": "tsc --noEmit",
-    "playtest": "node scripts/playtest.mjs"
+    "playtest": "node scripts/playtest.mjs",
+    "icons": "node scripts/gen-icons.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",

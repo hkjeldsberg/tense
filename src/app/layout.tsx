@@ -8,6 +8,8 @@ const body = Nunito({ variable: "--font-body", subsets: ["latin", "latin-ext"] }
 export const metadata: Metadata = {
   title: "The Memory Diorama",
   description: "Rebuild memories by choosing the right Spanish past tense: imperfecto or indefinido.",
+  // Label under the icon when added to an iPhone/iPad home screen.
+  appleWebApp: { title: "Diorama", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

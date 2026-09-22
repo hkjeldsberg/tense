@@ -26,6 +26,7 @@ npm run lint       # eslint (React Compiler rules on)
 npm run typecheck
 npm run build
 npm run seed:gen   # content/rooms.json → supabase/seed.sql
+npm run icons      # src/app/icon.svg + assets/apple-icon.svg → favicon.ico, apple-icon.png
 npm run playtest   # headless play-through of every room against a running dev server (URL=, ROOMS=a,b)
 ```
 
