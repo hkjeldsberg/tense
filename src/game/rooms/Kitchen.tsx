@@ -2,99 +2,13 @@
 
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
-import type { Group, Mesh, PointLight } from "three";
-import { Box, Cyl, Note, RoomShell, Sph } from "../objects/parts";
+import type { Group, Mesh } from "three";
+import { Box, Cyl, RoomShell, Sph } from "../objects/parts";
+import { Radio, WallClock, PendantLamp, HALF_PI, clamp01 } from "../objects/common";
 import { Slot, useSlot } from "../slot";
 import { easeOutCubic, onceProgress, useGameTime } from "../time";
 import { Toon } from "../toon";
 
-const HALF_PI = Math.PI / 2;
-const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
-
-/* ---------- radio_vintage_01 · imperfect loop: music plays ---------- */
-function Radio() {
-  const { on, since } = useSlot();
-  const time = useGameTime();
-  const body = useRef<Group>(null);
-  const notes = useRef<(Mesh | null)[]>([]);
-  useFrame(() => {
-    const s = since.current;
-    const lt = on && s !== null ? time.current.t - s : 0;
-    if (body.current) body.current.scale.y = on ? 1 + Math.abs(Math.sin(lt * 7)) * 0.05 : 1;
-    notes.current.forEach((n, i) => {
-      if (!n) return;
-      n.visible = on;
-      const f = (lt * 0.45 + i / 3) % 1;
-      n.position.set(-0.2 + Math.sin(f * 6 + i) * 0.25, 0.6 + f * 1.1, 0.1);
-      n.scale.setScalar(Math.sin(f * Math.PI));
-    });
-  });
-  return (
-    <group>
-      <group ref={body}>
-        <Box p={[0, 0.27, 0]} s={[0.85, 0.54, 0.36]} c="#2f8f8b" />
-        <Box p={[0, 0.56, 0]} s={[0.7, 0.06, 0.3]} c="#f2e3c6" />
-        <Cyl p={[-0.18, 0.27, 0.18]} r={[HALF_PI, 0, 0]} rt={0.15} h={0.03} c="#e9d8b4" />
-        <Cyl p={[0.24, 0.33, 0.18]} r={[HALF_PI, 0, 0]} rt={0.07} h={0.04} c={on ? "#ffd23f" : "#b5a98f"} emissive="#ffb100" glow={on ? 0.8 : 0} />
-        <Cyl p={[0.24, 0.14, 0.18]} r={[HALF_PI, 0, 0]} rt={0.045} h={0.04} c="#6a3b2a" />
-      </group>
-      <Box p={[0.25, 0.85, -0.08]} r={[0, 0, -0.45]} s={[0.025, 0.6, 0.025]} c="#15110e" />
-      {[0, 1, 2].map((i) => (
-        <Note key={i} ref={(m) => void (notes.current[i] = m)} c={i === 1 ? "#d64545" : "#15110e"} />
-      ))}
-    </group>
-  );
-}
-
-/* ---------- clock_wall_01 · imperfect loop: pendulum swings ---------- */
-function WallClock() {
-  const { on, since } = useSlot();
-  const time = useGameTime();
-  const pendulum = useRef<Group>(null);
-  const hand = useRef<Mesh>(null);
-  useFrame(() => {
-    const s = since.current;
-    const lt = on && s !== null ? time.current.t - s : 0;
-    if (pendulum.current) pendulum.current.rotation.z = on ? Math.sin(lt * 3.2) * 0.32 : 0;
-    if (hand.current) hand.current.rotation.z = -lt * 0.6;
-  });
-  return (
-    <group>
-      <Box p={[0, 0, 0]} s={[0.62, 1.4, 0.16]} c="#8a5433" />
-      <Box p={[0, 0.72, 0]} s={[0.72, 0.1, 0.2]} c="#6a3b2a" />
-      <Cyl p={[0, 0.34, 0.09]} r={[HALF_PI, 0, 0]} rt={0.24} h={0.03} c="#f7ecd2" />
-      <Box ref={hand} p={[0, 0.34, 0.12]} s={[0.03, 0.2, 0.02]} c="#15110e" />
-      <Box p={[0.05, 0.34, 0.12]} r={[0, 0, -1.2]} s={[0.03, 0.12, 0.02]} c="#15110e" />
-      <Box p={[0, -0.3, 0.07]} s={[0.44, 0.66, 0.04]} c="#3a2418" />
-      <group ref={pendulum} position={[0, 0.02, 0.11]}>
-        <Box p={[0, -0.25, 0]} s={[0.025, 0.5, 0.02]} c="#c9a227" />
-        <Cyl p={[0, -0.55, 0]} r={[HALF_PI, 0, 0]} rt={0.08} h={0.03} c="#e0b83a" />
-      </group>
-    </group>
-  );
-}
-
-/* ---------- lamp_kitchen_01 · imperfect loop: warm light glows ---------- */
-function PendantLamp() {
-  const { on, since } = useSlot();
-  const time = useGameTime();
-  const sway = useRef<Group>(null);
-  const light = useRef<PointLight>(null);
-  useFrame(() => {
-    const s = since.current;
-    const lt = on && s !== null ? time.current.t - s : 0;
-    if (sway.current) sway.current.rotation.z = on ? Math.sin(lt * 1.3) * 0.06 : 0;
-    if (light.current) light.current.intensity = on ? 9 + Math.sin(lt * 9) * 0.6 + Math.sin(lt * 23) * 0.4 : 0;
-  });
-  return (
-    <group ref={sway}>
-      <Box p={[0, 1.2, 0]} s={[0.03, 1.8, 0.03]} c="#15110e" />
-      <Cyl p={[0, 0.2, 0]} rt={0.14} rb={0.46} h={0.42} c="#3f8f5f" />
-      <Sph p={[0, -0.02, 0]} rad={0.12} c={on ? "#fff3b0" : "#8d8a78"} emissive="#ffd86b" glow={on ? 1.2 : 0} />
-      <pointLight ref={light} position={[0, -0.35, 0]} color="#ffcf7a" distance={6} decay={1.4} intensity={0} />
-    </group>
-  );
-}
 
 /* ---------- kettle_01 · preterite once: lid pops off and lands on the counter ---------- */
 function Kettle() {

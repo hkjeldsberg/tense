@@ -1,80 +1,15 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
-import type { Group, Mesh, MeshToonMaterial, PointLight } from "three";
-import { Box, Cyl, Note, RoomShell, Sph } from "../objects/parts";
+import { useRef } from "react";
+import type { Group, Mesh, PointLight } from "three";
+import { Box, Cyl, Note, RoomShell } from "../objects/parts";
+import { SnowWindow, PhotoFrame, Door, HALF_PI } from "../objects/common";
 import { Slot, useSlot } from "../slot";
-import { easeOutBounce, easeOutCubic, onceProgress, useGameTime } from "../time";
+import { easeOutBounce, onceProgress, useGameTime } from "../time";
 import { Toon } from "../toon";
 
-const HALF_PI = Math.PI / 2;
-const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 
-/** Deterministic pseudo-random, so layouts are stable across renders. */
-const rand = (i: number) => {
-  const x = Math.sin(i * 91.7 + 13.1) * 43758.5453;
-  return x - Math.floor(x);
-};
-
-/* ---------- window_snow_01 · imperfect loop: snow keeps falling ---------- */
-function SnowWindow() {
-  const { on, since } = useSlot();
-  const time = useGameTime();
-  const flakes = useRef<(Mesh | null)[]>([]);
-  const seeds = useMemo(() => Array.from({ length: 26 }, (_, i) => ({ x: rand(i) * 1.5 - 0.75, o: rand(i + 50), v: 0.6 + rand(i + 99) * 0.6 })), []);
-  useFrame(() => {
-    const s = since.current;
-    const lt = on && s !== null ? time.current.t - s : 0;
-    flakes.current.forEach((f, i) => {
-      if (!f) return;
-      f.visible = on;
-      const { x, o, v } = seeds[i];
-      const fall = (o + lt * 0.18 * v) % 1;
-      f.position.set(x + Math.sin(lt * 1.5 + i) * 0.05, 0.6 - fall * 1.2, 0.07);
-    });
-  });
-  return (
-    <group>
-      <Box s={[1.8, 1.5, 0.1]} c="#f4efe6" />
-      <Box p={[0, 0, 0.04]} s={[1.6, 1.3, 0.04]} c="#233b5e" />
-      <Box p={[0, 0, 0.1]} s={[0.05, 1.3, 0.04]} c="#f4efe6" />
-      <Box p={[0, 0.05, 0.1]} s={[1.6, 0.05, 0.04]} c="#f4efe6" />
-      <Box p={[0, -0.8, 0.12]} s={[2.0, 0.08, 0.3]} c="#f4efe6" />
-      <Box p={[0, -0.6, 0.06]} s={[1.6, 0.1, 0.04]} c={on ? "#ffffff" : "#233b5e"} />
-      {seeds.map((_, i) => (
-        <Sph key={i} ref={(m) => void (flakes.current[i] = m)} rad={0.035} c="#ffffff" />
-      ))}
-    </group>
-  );
-}
-
-/* ---------- photo_frame_01 · imperfect loop: the old photo glows back to colour ---------- */
-function PhotoFrame() {
-  const { on, since } = useSlot();
-  const time = useGameTime();
-  const frame = useRef<Group>(null);
-  const photo = useRef<Mesh>(null);
-  useFrame(() => {
-    const s = since.current;
-    const lt = on && s !== null ? time.current.t - s : 0;
-    if (frame.current) frame.current.rotation.z = on ? Math.sin(lt * 1.1) * 0.04 : 0;
-    const m = photo.current?.material as MeshToonMaterial | undefined;
-    if (m) m.emissiveIntensity = on ? 0.15 + (Math.sin(lt * 2) + 1) * 0.12 : 0;
-  });
-  const skin = on ? "#e7b48a" : "#a7a19a";
-  return (
-    <group ref={frame}>
-      <Box s={[1.0, 0.8, 0.06]} c="#c9a227" />
-      <Box ref={photo} p={[0, 0, 0.035]} s={[0.84, 0.64, 0.02]} c={on ? "#e6c797" : "#b9b3a9"} emissive="#ffcf7a" glow={0} />
-      <Sph p={[-0.16, 0.08, 0.06]} rad={0.08} c={skin} />
-      <Box p={[-0.16, -0.14, 0.055]} s={[0.2, 0.26, 0.02]} c={on ? "#4f7fbf" : "#77736d"} />
-      <Sph p={[0.16, 0.1, 0.06]} rad={0.08} c={skin} />
-      <Box p={[0.16, -0.14, 0.055]} s={[0.22, 0.28, 0.02]} c={on ? "#d64545" : "#8a857e"} />
-      <Box p={[0, 0.5, -0.02]} r={[0, 0, 0.9]} s={[0.02, 0.3, 0.02]} c="#15110e" />
-    </group>
-  );
-}
 
 /* ---------- piano_01 · imperfect loop: sister practises ---------- */
 function Piano() {
@@ -160,46 +95,6 @@ function Fireplace() {
       {/* mantel decor */}
       <Cyl p={[-0.7, 1.87, 0.05]} rt={0.06} h={0.3} c="#f7f4ee" />
       <Box p={[0.6, 1.85, 0.05]} s={[0.3, 0.26, 0.08]} c="#4f7fbf" />
-    </group>
-  );
-}
-
-/* ---------- door_01 · preterite once: door opens, uncle's present arrives ---------- */
-function Door() {
-  const { on, since } = useSlot();
-  const time = useGameTime();
-  const leaf = useRef<Group>(null);
-  const gift = useRef<Group>(null);
-  useFrame(() => {
-    const p = on ? onceProgress(time.current.t, since.current, 1.6) : 0;
-    const open = easeOutCubic(clamp01(p / 0.5));
-    if (leaf.current) leaf.current.rotation.y = -open * 1.75;
-    const g = gift.current;
-    if (g) {
-      const d = clamp01((p - 0.4) / 0.6);
-      g.visible = d > 0;
-      g.position.set(0.2, 1.2 * (1 - easeOutBounce(d)), 1.0);
-      g.rotation.y = 0.4 * d;
-    }
-  });
-  return (
-    <group>
-      <Box p={[0, 1.3, 0]} s={[1.4, 2.6, 0.1]} c="#6b4a3a" />
-      <Box p={[0, 1.2, 0.04]} s={[1.15, 2.35, 0.04]} c="#1c2c46" />
-      <Sph p={[0.2, 2.0, 0.06]} rad={0.05} c="#ffffff" />
-      <Sph p={[-0.25, 1.6, 0.06]} rad={0.04} c="#ffffff" />
-      <group ref={leaf} position={[-0.56, 0, 0.1]}>
-        <Box p={[0.56, 1.18, 0]} s={[1.12, 2.34, 0.08]} c="#b8433a" />
-        <Box p={[0.56, 1.7, 0.05]} s={[0.8, 0.8, 0.02]} c="#9c342d" />
-        <Box p={[0.56, 0.6, 0.05]} s={[0.8, 0.8, 0.02]} c="#9c342d" />
-        <Sph p={[0.98, 1.15, 0.07]} rad={0.05} c="#e0b83a" />
-      </group>
-      <group ref={gift}>
-        <Box p={[0, 0.22, 0]} s={[0.55, 0.44, 0.55]} c="#2f8f5b" />
-        <Box p={[0, 0.22, 0]} s={[0.1, 0.46, 0.57]} c="#ffd23f" />
-        <Box p={[0, 0.22, 0]} s={[0.57, 0.46, 0.1]} c="#ffd23f" />
-        <Sph p={[0, 0.5, 0]} rad={0.09} sc={[1.4, 0.8, 0.8]} c="#ffd23f" />
-      </group>
     </group>
   );
 }

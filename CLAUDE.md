@@ -26,6 +26,7 @@ npm run lint       # eslint (React Compiler rules on)
 npm run typecheck
 npm run build
 npm run seed:gen   # content/rooms.json → supabase/seed.sql
+npm run playtest   # headless play-through of every room against a running dev server (URL=, ROOMS=a,b)
 ```
 
 ## Layout
@@ -36,7 +37,8 @@ npm run seed:gen   # content/rooms.json → supabase/seed.sql
 - `src/game/Game.tsx`: game state (progress saved in localStorage), prompt flow
 - `src/game/Scene.tsx`: Canvas, lights, post-processing, `ROOM_SCENES` registry (room id → scene)
 - `src/game/slot.tsx`: `<Slot id anim>` binds a content `scene_object` to a 3D object (click, marker, anim start time)
-- `src/game/rooms/*.tsx`: one diorama per room; each object reads `useSlot()` and animates in `useFrame`
+- `src/game/rooms/*.tsx`: one diorama per room (10 rooms); each object reads `useSlot()` and animates in `useFrame`
+- `src/game/objects/common.tsx`: objects reused across rooms (Radio, WallClock, PendantLamp, Snow/Rain/SeaWindow, PhotoFrame, Door, Globe, Phone)
 - `src/game/time.tsx`: pausable game clock (paused while a prompt is open)
 
 ## Conventions
@@ -51,4 +53,4 @@ npm run seed:gen   # content/rooms.json → supabase/seed.sql
 - Spanish content must be correct. Double-check conjugations, accents (é, í, ó), and usage rules. Avoid sentences where both tenses would be acceptable.
 - Keep verb and sentence data out of the code.
 - Game UI text is in English and the learning content is in Spanish.
-- Verify visually: headless Chromium (`--use-angle=swiftshader`) works. A Chrome tab that's hidden or occluded pauses `requestAnimationFrame`, so the post-processed canvas looks blank there.
+- Verify with `npm run playtest` (uses the dev-only `window.__tenseSlots` hook from `slot.tsx` to click each object), then look at the screenshots in `.playtest/`. Headless Chromium (`--use-angle=swiftshader`) works. A Chrome tab that's hidden or occluded pauses `requestAnimationFrame`, so the post-processed canvas looks blank there.

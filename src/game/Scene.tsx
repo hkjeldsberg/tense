@@ -5,6 +5,13 @@ import { EffectComposer } from "@react-three/postprocessing";
 import { useEffect, type ComponentType } from "react";
 import { InkOutline } from "./effects/InkOutline";
 import { Bedroom } from "./rooms/Bedroom";
+import { Cafeteria } from "./rooms/Cafeteria";
+import { Station } from "./rooms/Station";
+import { Classroom } from "./rooms/Classroom";
+import { Workshop } from "./rooms/Workshop";
+import { StormNight } from "./rooms/StormNight";
+import { Party } from "./rooms/Party";
+import { Farewell } from "./rooms/Farewell";
 import { Kitchen } from "./rooms/Kitchen";
 import { LivingRoom } from "./rooms/LivingRoom";
 import { RoomBindingsContext, type RoomBindings } from "./slot";
@@ -15,6 +22,13 @@ export const ROOM_SCENES: Record<string, { Scene: ComponentType; background: str
   cocina: { Scene: Kitchen, background: "#f3ead8" },
   salon: { Scene: LivingRoom, background: "#e3e9ee" },
   dormitorio: { Scene: Bedroom, background: "#eee3f0" },
+  cafeteria: { Scene: Cafeteria, background: "#e4efe3" },
+  estacion: { Scene: Station, background: "#efe6d6" },
+  aula: { Scene: Classroom, background: "#f4ecd2" },
+  taller: { Scene: Workshop, background: "#ece3d3" },
+  tormenta: { Scene: StormNight, background: "#2a2f3f" },
+  fiesta: { Scene: Party, background: "#fbe6e0" },
+  despedida: { Scene: Farewell, background: "#ecebe6" },
 };
 
 /** Fits the 8×8 room into the viewport with an isometric orthographic view. */

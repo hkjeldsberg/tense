@@ -40,7 +40,7 @@ export function Hud({ room, rooms, unlocked, solved, source, onSelectRoom, onRes
           </div>
         </div>
 
-        <nav className="pointer-events-auto flex items-center gap-2" aria-label="Rooms">
+        <nav className="pointer-events-auto flex max-w-[26rem] flex-wrap items-center justify-end gap-2" aria-label="Rooms">
           {rooms.map((r, i) => {
             const open = unlocked(i);
             const current = r.id === room.id;

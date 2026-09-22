@@ -2,59 +2,12 @@
 
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
-import type { Group, Mesh, MeshToonMaterial } from "three";
+import type { Group } from "three";
 import { Box, Cyl, RoomShell, Sph } from "../objects/parts";
+import { Globe, Phone, HALF_PI, clamp01 } from "../objects/common";
 import { Slot, useSlot } from "../slot";
 import { easeOutBounce, onceProgress, useGameTime } from "../time";
-import { Toon } from "../toon";
 
-const HALF_PI = Math.PI / 2;
-const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
-
-/* ---------- globe_01 · imperfect loop: the globe keeps spinning (childhood dreams) ---------- */
-const LAND: [number, number, number][] = [
-  [0.4, 0.3, 0.1],
-  [-0.2, 0.5, 0.3],
-  [2.2, -0.2, 0.2],
-  [3.4, 0.1, 0.13],
-  [4.8, -0.4, 0.16],
-  [1.2, -0.6, 0.1],
-];
-
-function Globe() {
-  const { on, since } = useSlot();
-  const time = useGameTime();
-  const ball = useRef<Group>(null);
-  useFrame(() => {
-    const s = since.current;
-    const lt = on && s !== null ? time.current.t - s : 0;
-    if (ball.current) ball.current.rotation.y = lt * 1.4;
-  });
-  return (
-    <group>
-      <Cyl p={[0, 0.03, 0]} rt={0.18} rb={0.22} h={0.06} c="#6b4a3a" />
-      <Cyl p={[0, 0.2, 0]} rt={0.025} h={0.32} c="#c9a227" />
-      <group position={[0, 0.62, 0]} rotation={[0, 0, 0.4]}>
-        <group ref={ball}>
-          <Sph rad={0.32} c="#3b8ec4" />
-          {LAND.map(([lon, lat, size], i) => (
-            <Sph
-              key={i}
-              p={[0.3 * Math.cos(lat) * Math.cos(lon), 0.3 * Math.sin(lat), 0.3 * Math.cos(lat) * Math.sin(lon)]}
-              rad={size * 0.55}
-              sc={[1, 0.6, 1]}
-              c="#5fae5a"
-            />
-          ))}
-        </group>
-        <mesh rotation={[0, HALF_PI, 0]}>
-          <torusGeometry args={[0.38, 0.018, 8, 32, Math.PI]} />
-          <Toon color="#c9a227" />
-        </mesh>
-      </group>
-    </group>
-  );
-}
 
 /* ---------- window_clouds_01 · imperfect loop: clouds drift across a grey sky ---------- */
 function CloudWindow() {
@@ -87,48 +40,6 @@ function CloudWindow() {
       {/* curtains */}
       <Box p={[-0.85, 0.05, 0.14]} s={[0.25, 1.5, 0.06]} c="#b0508a" />
       <Box p={[0.85, 0.05, 0.14]} s={[0.25, 1.5, 0.06]} c="#b0508a" />
-    </group>
-  );
-}
-
-/* ---------- phone_01 · imperfect loop: the phone is ringing ---------- */
-function Phone() {
-  const { on, since } = useSlot();
-  const time = useGameTime();
-  const handset = useRef<Group>(null);
-  const rings = useRef<(Mesh | null)[]>([]);
-  useFrame(() => {
-    const s = since.current;
-    const lt = on && s !== null ? time.current.t - s : 0;
-    const ringing = on && lt % 1.6 < 0.9;
-    const h = handset.current;
-    if (h) {
-      h.position.y = 0.2 + (ringing ? Math.abs(Math.sin(lt * 40)) * 0.04 : 0);
-      h.rotation.z = ringing ? Math.sin(lt * 55) * 0.1 : 0;
-    }
-    rings.current.forEach((r, i) => {
-      if (!r) return;
-      const f = ((lt % 1.6) / 0.9 + i * 0.5) % 1;
-      r.visible = ringing;
-      r.scale.setScalar(0.4 + f * 1.4);
-      (r.material as MeshToonMaterial).opacity = 1 - f;
-    });
-  });
-  return (
-    <group>
-      <Box p={[0, 0.08, 0]} s={[0.45, 0.16, 0.36]} c="#d64545" />
-      <Cyl p={[0, 0.165, 0.08]} rt={0.1} h={0.02} c="#f7f4ee" />
-      <group ref={handset} position={[0, 0.2, -0.06]}>
-        <Box s={[0.5, 0.06, 0.1]} c="#b8322f" />
-        <Box p={[-0.22, -0.04, 0]} s={[0.1, 0.08, 0.13]} c="#b8322f" />
-        <Box p={[0.22, -0.04, 0]} s={[0.1, 0.08, 0.13]} c="#b8322f" />
-      </group>
-      {[0, 1].map((i) => (
-        <mesh key={i} ref={(m) => void (rings.current[i] = m)} position={[0, 0.3, 0]} rotation={[HALF_PI, 0, 0]}>
-          <torusGeometry args={[0.35, 0.015, 6, 32]} />
-          <Toon color="#ffd23f" transparent opacity={1} />
-        </mesh>
-      ))}
     </group>
   );
 }

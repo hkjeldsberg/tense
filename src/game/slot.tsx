@@ -2,7 +2,7 @@
 
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import type { Group } from "three";
+import { Box3, Vector3, type Group, type Mesh } from "three";
 import type { Puzzle } from "@/lib/types";
 import { easeOutBounce, onceProgress, useGameTime } from "./time";
 import { Toon } from "./toon";
@@ -63,6 +63,29 @@ export function Slot({ id, anim, position, rotation, markerY = 1.4, children }: 
   }, [solved, time]);
 
   const clickable = !!puzzle && !solved && !!bindings?.interactive;
+
+  // Dev only: lets automated play-tests find each object's on-screen centre.
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    const w = window as unknown as { __tenseSlots?: Record<string, () => number[]> };
+    const slots = (w.__tenseSlots ??= {});
+    // Centre of the largest visible mesh: a spot a player would actually click.
+    slots[id] = () => {
+      let best = new Box3();
+      let bestSize = -1;
+      group.current?.traverseVisible((o) => {
+        if (!(o as Mesh).isMesh) return;
+        const b = new Box3().setFromObject(o);
+        const d = b.getSize(new Vector3());
+        const size = d.x * d.y + d.y * d.z + d.x * d.z;
+        if (size > bestSize) [best, bestSize] = [b, size];
+      });
+      return best.getCenter(new Vector3()).toArray();
+    };
+    return () => {
+      delete slots[id];
+    };
+  }, [id]);
 
   useEffect(() => {
     if (!hovered || !clickable) return;
