@@ -1,0 +1,142 @@
+"use client";
+
+import { useFrame, type ThreeEvent } from "@react-three/fiber";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import type { Group } from "three";
+import type { Puzzle } from "@/lib/types";
+import { easeOutBounce, onceProgress, useGameTime } from "./time";
+import { Toon } from "./toon";
+
+/** What a room scene needs from the game: which objects hold puzzles and their state. */
+export interface RoomBindings {
+  puzzleFor: (sceneObject: string) => Puzzle | undefined;
+  isSolved: (puzzleId: string) => boolean;
+  onSelect: (puzzle: Puzzle) => void;
+  interactive: boolean;
+}
+
+export const RoomBindingsContext = createContext<RoomBindings | null>(null);
+
+interface SlotState {
+  /** True once solved AND the content's anim_trigger is the one this object implements. */
+  on: boolean;
+  /** Game time the animation started (null = locked). Restored progress starts far in the past. */
+  since: RefObject<number | null>;
+}
+
+const SlotContext = createContext<SlotState | null>(null);
+
+export function useSlot() {
+  const ctx = useContext(SlotContext);
+  if (!ctx) throw new Error("useSlot must be used inside <Slot>");
+  return ctx;
+}
+
+const RESTORED = -1e6;
+
+interface SlotProps {
+  /** Mesh id referenced by content (`scene_object`). */
+  id: string;
+  /** anim_trigger this object implements. Other triggers fall back to a generic loop/once anim. */
+  anim: string;
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  /** Height of the "memory here" marker above the slot origin. */
+  markerY?: number;
+  children: ReactNode;
+}
+
+export function Slot({ id, anim, position, rotation, markerY = 1.4, children }: SlotProps) {
+  const bindings = useContext(RoomBindingsContext);
+  const time = useGameTime();
+  const puzzle = bindings?.puzzleFor(id);
+  const solved = puzzle ? bindings!.isSolved(puzzle.id) : false;
+  const since = useRef<number | null>(solved ? RESTORED : null);
+  const [hovered, setHovered] = useState(false);
+  const group = useRef<Group>(null);
+  const generic = useRef<Group>(null);
+
+  // Clock is paused while the prompt is open, so the animation starts when it closes.
+  useEffect(() => {
+    if (solved && since.current === null) since.current = time.current.t;
+    if (!solved) since.current = null;
+  }, [solved, time]);
+
+  const clickable = !!puzzle && !solved && !!bindings?.interactive;
+
+  useEffect(() => {
+    if (!hovered || !clickable) return;
+    document.body.style.cursor = "pointer";
+    return () => {
+      document.body.style.cursor = "";
+    };
+  }, [hovered, clickable]);
+
+  const trigger = puzzle?.anim_trigger;
+  const native = trigger === anim;
+  const fallback = solved && trigger && !native ? (trigger.endsWith("_once") ? "once" : "loop") : null;
+
+  useFrame(() => {
+    const g = group.current;
+    if (g) {
+      const target = clickable && hovered ? 1.06 : 1;
+      g.scale.setScalar(g.scale.x + (target - g.scale.x) * 0.2);
+    }
+    const f = generic.current;
+    if (!f) return;
+    const s = since.current;
+    if (fallback === "loop" && s !== null) {
+      const lt = time.current.t - s;
+      f.position.y = Math.abs(Math.sin(lt * 3)) * 0.08;
+      f.rotation.y = Math.sin(lt * 1.5) * 0.08;
+    } else if (fallback === "once") {
+      const p = onceProgress(time.current.t, s, 0.9);
+      f.position.y = Math.sin(p * Math.PI) * 0.5;
+      f.rotation.y = easeOutBounce(p) * Math.PI * 0.25;
+    }
+  });
+
+  const onClick = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    if (clickable) bindings!.onSelect(puzzle!);
+  };
+
+  return (
+    <group position={position} rotation={rotation}>
+      <group
+        ref={group}
+        onClick={onClick}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHovered(true);
+        }}
+        onPointerOut={() => setHovered(false)}
+      >
+        <group ref={generic}>
+          <SlotContext.Provider value={{ on: solved && native, since }}>{children}</SlotContext.Provider>
+        </group>
+      </group>
+      {clickable && <Marker y={markerY} hovered={hovered} />}
+    </group>
+  );
+}
+
+/** Floating ink-outlined diamond that marks an unresolved memory. */
+function Marker({ y, hovered }: { y: number; hovered: boolean }) {
+  const ref = useRef<Group>(null);
+  useFrame(({ clock }) => {
+    const m = ref.current;
+    if (!m) return;
+    const t = clock.elapsedTime;
+    m.position.y = y + Math.sin(t * 2.4) * 0.08;
+    m.rotation.y = t * 1.2;
+  });
+  return (
+    <group ref={ref} position={[0, y, 0]} scale={hovered ? 1.35 : 1}>
+      <mesh raycast={() => null}>
+        <octahedronGeometry args={[0.16, 0]} />
+        <Toon color={hovered ? "#ff5a36" : "#ffd23f"} emissive="#ffb100" emissiveIntensity={0.35} />
+      </mesh>
+    </group>
+  );
+}
